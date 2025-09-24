@@ -1,0 +1,51 @@
+name: CD - Deploy to AKS
+
+on:
+  push:
+    branches: [ main ]  
+  workflow_dispatch:    
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Azure Container Registry Login
+      run: |
+        az acr login --name zzjsit722acr
+
+    - name: Build & Push frontend
+      run: |
+        docker build -t zzjsit722acr.azurecr.io/frontend:latest ./frontend
+        docker push zzjsit722acr.azurecr.io/frontend:latest
+
+    - name: Build & Push customer
+      run: |
+        docker build -t zzjsit722acr.azurecr.io/customer_service:latest ./backend/customer_service
+        docker push zzjsit722acr.azurecr.io/customer_service:latest
+
+    - name: Build & Push order
+      run: |
+        docker build -t zzjsit722acr.azurecr.io/order_service:latest ./backend/order_service
+        docker push zzjsit722acr.azurecr.io/order_service:latest
+
+    - name: Build & Push product
+      run: |
+        docker build -t zzjsit722acr.azurecr.io/product_service:latest ./backend/product_service
+        docker push zzjsit722acr.azurecr.io/product_service:latest
+
+    - name: Get AKS Credentials
+      run: |
+        az aks get-credentials --resource-group zzj-rg --name zzj-aks --overwrite-existing
+
+    - name: Deploy to AKS
+      run: |
+        kubectl apply -f k8s/ -n staging
