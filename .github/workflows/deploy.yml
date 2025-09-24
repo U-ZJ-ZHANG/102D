@@ -1,4 +1,4 @@
-name: CD - Deploy to AKS
+name: CD
 
 on:
   push:
